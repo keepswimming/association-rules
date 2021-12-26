@@ -1,0 +1,302 @@
+---
+title: "Homework 11 R markdown"
+author: "(Rita Miller)"
+date: '`r Sys.Date()`'
+output:
+  html_document:
+    fig_height: 4
+    fig_width: 4.5
+  pdf_document:
+    fig_height: 4
+    fig_width: 4.5
+  word_document:
+    fig_height: 4
+    fig_width: 4.5
+---
+
+
+```{r, setup, include=FALSE}
+#require(mosaic)   # Load additional packages here 
+
+# Some customization.  You can alter or delete as desired (if you know what you are doing).
+#trellis.par.set(theme=theme.mosaic()) # change default color scheme for lattice
+knitr::opts_chunk$set(
+  tidy=FALSE,     # display code as typed
+  size="small")   # slightly smaller font for code
+```
+#### **Intellectual Property:** 
+These problems are the intellectual property of the instructors and may not be reproduced outside of this course.
+
+Load packages here.
+```{r}
+library(arules)
+library(arulesViz)
+library(dplyr)
+library(readr)#read_csv is better for association problems
+```
+## Problem 1: Mining Association Rules
+In this problem, you will mine association rules from groceries data.
+
+**Data Set**: Load the **arules** library and **Groceries** data set.  
+```{r,echo=FALSE}
+data("Groceries")
+str("Groceries")
+head("Groceries")#169 rows 3 columns
+summary("Groceries")
+```
+
+### Question 1 (1 point): 
+
+How many products are represented in this data set?-----> 169 columns
+
+**Numeric Answer (AUTOGRADED on Canvas)**:  
+```{r,echo=FALSE}
+summary(Groceries) 
+```
+### Question 2 (1 point):
+
+```{r}
+summary(Groceries)#9835 rows (elements/itemsets/transactions) 
+```
+How many transactions (customers) are there? ------->9835
+
+**Numeric Answer (AUTOGRADED on Canvas)**:  
+
+### Question 3 (1 point):
+#the largest number of items is the max from the summary - 32 items.
+
+What is the largest number of items any customer purchased at one time?----->32 items
+
+**Numeric Answer (AUTOGRADED on Canvas)**:  
+
+### Question 4 (1 point):
+
+Make a barplot of the relative frequencies of each item, including all items that were purchased by at least 5% of the customers.  
+
+Enter your R code below.
+
+**Code Answer**: 
+```{r, echo=TRUE}
+itemFrequencyPlot(Groceries, support = 0.05)
+```
+### Question 5 (2 points):
+
+Mine all simple association rules with at least .001 support and at least 0.5 confidence. (Recall that a “simple” association rule is one with a single item in the consequent, which is the type of rule that `apriori` returns.)
+
+Enter your R code below.
+
+**Code Answer**: 
+```{r, echo=TRUE}
+rules = apriori(Groceries, 
+   parameter = list(support = .001, confidence = 0.5))
+summary(rules)
+
+```
+
+### Question 6 (2 points):
+
+Print the 10 rules with the highest lift values.
+
+Enter your R code below.
+
+**Code Answer**: 
+```{r, echo=TRUE}
+inspect(head(rules, n = 10, by = "lift"))
+```
+
+**Use your answer to the previous question** to answer questions 7-10.
+
+### Question 7 (1 point):
+
+What is the lift value for the rule
+
+**{Instant food products, soda} => {hamburger meat}** ?  Enter your answer to 3 digits after the decimal place.
+
+**Numeric Answer (AUTOGRADED on Canvas)**:  ----> 18.996	
+
+### Question 8 (2 points):
+
+Fill in the blanks to interpret the numerical value from the previous question.
+
+People who buy (*instant food products and soda / instant food products or soda or both / instant food products or soda, but not both) are about (19% more likely / 19% as likely / *19 times as likely) to buy hamburger meat, compared to people (who do not buy instant food products or soda / *chosen randomly, who may or may not buy instant food products or soda).
+
+**Fill-in-the-blank Answer**: 
+instant food products and soda
+19 times as likely
+chosen randomly, who may or may not buy instant food products or soda (I think since this is the lift)
+
+### Question 9 (1 point):
+
+How many customers in the data set purchased soda, popcorn, and a salty snack?---->12
+
+**Numeric Answer (AUTOGRADED on Canvas)**:  
+
+### Question 10 (1 point):
+
+If a customer purchases ham and processed cheese, what is the probability that he or she will also purchase white bread?  Give your answer to 3 digits after the decimal place.
+
+**Numeric Answer**  ---->confidence = 0.633	
+
+### Question 11 (2 points):
+
+Return to working with the original set of rules from the fifth question in this problem.  Filter out any rules that have lower confidence than more general versions of the same rules.  How many rules remain?
+
+**Numeric Answer (AUTOGRADED on Canvas)**:  ---->5118 
+```{r}
+non_redundant = (interestMeasure(rules,
+                                 measure = "improvement",
+                                 quality_measure = "confidence") >= 0)
+rules2 = rules[non_redundant]
+summary(rules2)
+```
+
+### Question 12 (2 points):
+
+Suppose that you work for a baking company, and you want to offer a coupon to customers who are likely to buy pastry.  Using your filtered rules from the previous question, identify combination(s) of items that are associated with an increased probability of buying “pastry”.  
+
+You should offer your coupon to customers who buy all of the following: (Select all that apply.)
+tropical fruit, *citrus fruit, *whole milk, yogurt, *whipped/sour cream, *rolls/buns, white bread, domestic eggs
+
+(The answer options may appear in a different order on Canvas.)
+
+**Multiple-Select Answer**: 
+
+# *citrus fruit, *whole milk, yogurt, *whipped/sour cream, *rolls/buns
+
+### Question 13 (2 points):
+
+Enter the R code that can automatically display the answer the previous question in a knitted Word or PDF document.
+
+**Code Answer**: 
+
+```{r}
+ #enter the code that was used to answer question 12 without using inspectDT-----
+##subset of rules that has pastry alone as the consequence
+
+buyPastry = subset(rules2, subset = rhs %in% c("pastry") )
+inspect(head(buyPastry, n = 3, by = "lift"))
+
+```
+
+## Problem 2: Modeling with Association Rules
+
+In this problem, you will use association rules to model heart disease.  
+
+**Data Set**:  From Canvas, Download *HeartDisease.csv* and load it into R.  The file *HeartDisease_data_dictionary.txt* contains information about the variables in the file.
+
+**Source**:  Robert Detrano, M.D., Ph.D. (1988). V.A. Medical Center, Long Beach and Cleveland Clinic Foundation.  Retrieved from the UCI Machine Learning Repository [http://archive.ics.uci.edu/ml]. Irvine, CA: University of California, School of Information and Computer Science.
+
+### Question 14 (2 points):
+
+A value of **ChestPain** equal to 4 indicates that the patient is asymptomatic (does not have any kind of chest pain).  Create a new variable, **hasCP**, which equals 1 for all individuals with chest pain, and which equals 0 otherwise.  Make it a factor variable.  Remove the original **ChestPain** variable.
+Enter your R code below.
+
+**Code Answer**: 
+```{r, echo=TRUE, message=FALSE}
+heart = read_csv("HeartDisease.csv")
+```
+```{r}
+heart <- heart %>%
+  mutate(hasCP = factor(ifelse(ChestPain == 4, 0, 1)))%>%
+  select(-ChestPain)
+       
+```
+### Question 15 (2 points):
+
+Discretize **Age** into 3 ordered categories, using equal interval lengths. 
+
+Enter your R code below.
+
+**Code Answer**: 
+```{r, echo=TRUE}
+
+heart$Age.discret = discretize(heart$Age, breaks=3, ordered=T, method="interval")
+
+heart <- heart %>%
+  select(-Age) #remove original Age variable
+```
+### Question 16 (2 points):
+Discretize **BloodPressure** into 3 ordered categories with fixed boundaries determined by the first and third quartiles of the data.
+
+Enter your R code below.
+
+**Code Answer**: 
+```{r, echo=TRUE}
+summary(heart$BloodPressure)
+
+heart$BloodPressure.discret = discretize(heart$BloodPressure, method = "fixed", breaks = c(94,120,140,200), ordered = T)
+```
+
+```{r}
+heart <- heart %>%
+  select(-BloodPressure) #remove original BloodPressure variable
+```
+### Question 17 (3 points):
+
+Tell R to treat the other variables (which you didn’t create using `discretize()`) in **HeartDisease.csv** as discrete factors.  Create a data frame containing the discrete versions of all of the variables (it should have 14 columns).  Then convert the data frame to a format suitable for association rule mining.
+
+Enter your R code below.
+
+**Code Answer**: 
+```{r, echo=TRUE}
+heart <- heart %>%
+  mutate(across(where(is.character), factor))%>%
+  mutate(across(where(is.double), factor))
+```
+#Then convert the data frame to a format suitable for association rule mining-->#convert to transaction type dataset
+```{r,echo=FALSE}
+heart_trans = as(heart, "transactions")
+```
+
+```{r}
+summary(heart)
+```
+### Question 18 (2 points):
+Mine the data for association rules in which “hasHD=1” is the consequent.  Use a minimum support of .03 and a minimum confidence of 0.5.  (Note that you may need to increase `maxlen` to be sure that you are seeing all the rules.)  How many rules are there? ----->5542 rules 
+
+**Numeric Answer (AUTOGRADED on Canvas)**:  
+
+```{r}
+rules3 = apriori(heart_trans, 
+                parameter = list(support = .03, confidence = 0.5, maxlen = 14), 
+                appearance = list(rhs = c("hasHD=1")) )
+summary(rules3)
+```
+### Question 19 (2 points):
+
+Find the subset of rules in which being female is an antecedent.  (Note that in this data set, **Sex** equal to 0 corresponds to female.)  How many such rules are there? -----> 37 rules
+
+**Numeric Answer (AUTOGRADED on Canvas)**:  
+```{r,echo=FALSE}
+rules3.female = subset(rules3, subset = lhs %in% c("Sex=0"))
+summary(rules3.female)
+```
+### Question 20 (2 points):
+
+Which **two** of the following risk factors, along with being female, are associated with the greatest elevation in probability of heart disease?
+
+**Multiple SELECT Answer (AUTOGRADED on Canvas)**:  
+Blood pressure greater than 140,  
+Reversible defects on a thallium heart scan (**Thal** equal to 7), *** 
+A flat peak exercise ST segment (Slope equal to 2),  
+No chest pain,***  
+Chest pain
+```{r}
+inspect(head(rules3.female, n = 10, by = "lift"))
+```
+
+### Question 21 (3 points):
+
+There are 2340 rules in which being male is an antecedent.  Why are there fewer rules in which being female is an antecedent?  Give **two** reasons.
+
+```{r}
+summary(heart$Sex)
+```
+
+**Text Answer**: 
+1. There are 97 males and 206 females in this data set. Since these numbers are uneven, there will be fewer likelihood for certain combinations to happen.  
+
+2. We could be missing other predictors in the data set that may be associated with heart disease. For example, sitting for long periods of time is now considered the new smoking and that may become a major risk factor for heart disease in women more than men, and that may increase the number of rules, but this particular data set is limited. 
+
+
+
