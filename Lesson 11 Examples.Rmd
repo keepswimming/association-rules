@@ -1,0 +1,89 @@
+---
+title: "Lesson 11 Examples"
+author: "Abra Brisbin"
+date: "7/6/2021"
+output: word_document
+always_allow_html: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message = FALSE}
+library(arules)
+library(arulesViz)
+```
+
+# What associations can we extract about characteristics of people who live in the Bay Area?
+
+```{r}
+data(Income)
+summary(Income)
+```
+
+```{r}
+itemFrequencyPlot(Income)
+itemFrequencyPlot(Income, support = .4)
+```
+
+```{r}
+rules = apriori(Income, parameter = list(support = .05, confidence = 0.9))
+summary(rules)
+```
+```{r}
+subRules = head(rules, n = 3, by = "lift")
+inspect(subRules)
+```
+```{r}
+more_rules = apriori(Income, parameter = list(support = .05, 
+                                              confidence = 0.9, 
+                                              maxlen = 12))
+
+summary(more_rules)
+```
+
+## Redundant rules
+```{r}
+
+non_redundant = !is.redundant(rules)
+summary( rules[non_redundant] )
+
+```
+
+```{r}
+
+non_redundant = (interestMeasure(rules,
+                                  measure = "improvement",
+                                  quality_measure = "confidence") > 0)
+
+```
+
+# Visualizing Association Rules
+```{r}
+data("Groceries")
+grocery_rules = apriori(Groceries, parameter = list(support = .001, confidence = 0.5))
+subrules = head(grocery_rules, n = 10, by = "lift")
+plot(subrules, method="matrix", measure="lift")
+plot(subrules, method="grouped")
+```
+
+
+
+
+
+
+
+
+Inspecting the Bay Area rules:
+```{r}
+inspectDT(rules)
+```
+
+
+
+
+
+
+
+
